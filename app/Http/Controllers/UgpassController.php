@@ -38,74 +38,75 @@ class UgpassController extends Controller
 
     }
 
- public function callback(Request $request)
-{
-    // Verify state
-    $state = $request->get('state');
-    if ($state !== session('ugpass_state')) {
-        abort(400, 'Invalid state');
-    }
+    public function callback(Request $request)
+    {
+        // Verify state
+        $state = $request->get('state');
+        if ($state !== session('ugpass_state')) {
+            abort(400, 'Invalid state');
+        }
 
-    $code = $request->get('code');
-    if (!$code) {
+        $code = $request->get('code');
+        if (!$code) {
+            return response()->json([
+                'error' => $request->get('error'),
+                'description' => $request->get('error_description')
+            ], 400);
+        }
+
+        $clientId = config('services.ugpass.client_id');
+        $redirect = config('services.ugpass.redirect_uri');
+
+        // Build client assertion JWT
+        $clientAssertion = $this->svc->buildClientAssertion(
+            $clientId,
+            config('services.ugpass.token') // UgPass token endpoint as aud
+        );
+
+        // Exchange code for tokens
+        $tokenRes = Http::asForm()->post(config('services.ugpass.token'), [
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => $redirect,
+            'client_id' => $clientId,
+            'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion' => $clientAssertion,
+        ]);
+
+        if (!$tokenRes->ok()) {
+            return response()->json($tokenRes->json(), $tokenRes->status());
+        }
+
+        $tokens = $tokenRes->json();
+
+
+        if (!isset($tokens['id_token'])) {
         return response()->json([
-            'error' => $request->get('error'),
-            'description' => $request->get('error_description')
+            'error' => 'UgPass did not return an id_token',
+            'response' => $tokens,
         ], 400);
+        }
+
+        $idToken = $tokens['id_token'];
+
+        // Decode ID token to get user info
+        $claims = $this->decodeIdToken($idToken);
+
+        // Save tokens + user claims in session
+        session([
+            'ugpass' => $tokens,
+            'ugpass_user' => $claims,
+        ]);
+
+        // return response()->json([
+        //     'tokens' => $tokens,
+        //     'user' => $claims,
+        // ]);
+        // Redirect to dashboard
+        return redirect()->route('dashboard');
     }
-
-    $clientId = config('services.ugpass.client_id');
-    $redirect = config('services.ugpass.redirect_uri');
-
-    // Build client assertion JWT
-    $clientAssertion = $this->svc->buildClientAssertion(
-        $clientId,
-        config('services.ugpass.token') // UgPass token endpoint as aud
-    );
-
-    // Exchange code for tokens
-    $tokenRes = Http::asForm()->post(config('services.ugpass.token'), [
-        'grant_type' => 'authorization_code',
-        'code' => $code,
-        'redirect_uri' => $redirect,
-        'client_id' => $clientId,
-        'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-        'client_assertion' => $clientAssertion,
-    ]);
-
-    if (!$tokenRes->ok()) {
-        return response()->json($tokenRes->json(), $tokenRes->status());
-    }
-
-    $tokens = $tokenRes->json();
-
-
-    if (!isset($tokens['id_token'])) {
-    return response()->json([
-        'error' => 'UgPass did not return an id_token',
-        'response' => $tokens,
-    ], 400);
-}
-
-$idToken = $tokens['id_token'];
-
-    // Decode ID token to get user info
-    $claims = $this->decodeIdToken($idToken);
-
-    // Save tokens + user claims in session
-    session([
-        'ugpass' => $tokens,
-        'ugpass_user' => $claims,
-    ]);
-
-    return response()->json([
-        'tokens' => $tokens,
-        'user' => $claims,
-    ]);
-}
-
   
-   private function decodeIdToken(string $idToken): array
+    private function decodeIdToken(string $idToken): array
     {
         $parts = explode('.', $idToken);
         if (count($parts) !== 3) {
@@ -115,14 +116,26 @@ $idToken = $tokens['id_token'];
     }
 
 
-    // public function logout(Request $request)
-    // {
-    //     $idToken = $request->user()?->id_token ?? $request->get('id_token'); // adapt to your storage
-    //     $url = config('services.ugpass.logout') . '?' . http_build_query([
-    //         'id_token_hint' => $idToken,
-    //         'post_logout_redirect_uri' => config('app.url'),
-    //         'state' => bin2hex(random_bytes(8)),z
-    //     ]);
-    //     return redirect($url);
-    // }
+    public function logout(Request $request)
+    {
+        // get ID token from session (or wherever you stored it)
+        $tokens = session('ugpass');
+        $idToken = $tokens['id_token'] ?? null;
+
+        if (!$idToken) {
+            return redirect('/')->withErrors('No active UgPass session');
+        }
+
+        $url = config('services.ugpass.logout') . '?' . http_build_query([
+            'id_token_hint' => $idToken,
+            'post_logout_redirect_uri' => config('app.url') . '/logged-out',
+            'state' => bin2hex(random_bytes(8)),
+        ]);
+
+        // clear local session
+        session()->forget(['ugpass', 'ugpass_user']);
+
+        return redirect($url);
+    }
+
 }

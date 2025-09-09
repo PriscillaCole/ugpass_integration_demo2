@@ -1,17 +1,24 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UgPass Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="card shadow-lg p-4">
+        <h2 class="mb-3">Welcome, {{ $user['daes_claims']['name'] ?? 'User' }} 🎉</h2>
+        <p><strong>Email:</strong> {{ $user['daes_claims']['email'] ?? 'N/A' }}</p>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    {{ __("You're logged in!") }}
-                </div>
-            </div>
-        </div>
+        <hr>
+
+        <h4>Next Steps</h4>
+        <ul>
+            <li><a href="{{ route('sign.ui') }}" class="btn btn-primary mt-2">Upload & Sign Documents</a></li>
+            <li><a href="{{ route('ugpass.logout') }}" class="btn btn-danger mt-2">Logout</a></li>
+        </ul>
     </div>
-</x-app-layout>
+</div>
+</body>
+</html>
+

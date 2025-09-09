@@ -1,86 +1,100 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\UgPassService;
+use App\Services\UgpassSigningService;
+use ZipArchive;
 
 class UgpassSigningController extends Controller
 {
-    protected $service;
+    public function __construct(private UgpassSigningService $service) {}
 
-    public function __construct(UgPassService $service)
+    /** Single Document Sign */
+     public function signSingle(Request $request)
     {
-        $this->service = $service;
-    }
+         
+        $request->validate([
+            'document' => 'required|mimes:pdf|max:5120',
+        ]);
 
-    /** Single document sign */
-    public function signDocument()
-    {
-        $tokens = session('ugpass');
-        if (!$tokens) {
-            return redirect()->route('login');
-        }
+        
+        $path = $request->file('document')->store('uploads', 'public');
 
-        $accessToken = $tokens['access_token'];
+
         $result = $this->service->signDocument(
-            $accessToken,
-            storage_path('app/test.pdf'),
-            "user@example.com"
+            storage_path("app/public/{$path}"),
+            session('ugpass_user')['daes_claims']['email']
         );
 
-        return response()->json($result);
+        // Debug: inspect the raw result from UgPass service
+        dd($result);
+
+        $downloadFile = isset($result['savedPath']) ? basename($result['savedPath']) : null;
+
+        return redirect()->route('sign.ui')->with('download', $downloadFile);
     }
 
-    /** Bulk sign */
-    public function bulkSign()
+
+    /** Bulk Document Signing (returns ZIP) */
+    public function bulkSign(Request $request)
     {
-        $tokens = session('ugpass');
-        if (!$tokens) {
-            return redirect()->route('login');
+        $request->validate([
+            'documents.*' => 'required|mimes:pdf|max:5120',
+        ]);
+
+        $paths = [];
+        foreach ($request->file('documents') as $file) {
+            $paths[] = $file->store('uploads', 'public');
         }
 
-        $accessToken = $tokens['access_token'];
-        $result = $this->service->bulkSign(
-            $accessToken,
-            "C:/docs/to-sign",
-            "C:/docs/signed-output",
-            "user@example.com"
-        );
+        $files = array_map(fn($p) => storage_path("app/public/{$p}"), $paths);
 
-        return response()->json($result);
-    }
+        $result = $this->service->bulkSign($files, "placeholder@example.com");
 
-    /** Bulk signing status */
-    public function bulkStatus($id)
-    {
-        $tokens = session('ugpass');
-        if (!$tokens) {
-            return redirect()->route('login');
+        $zipFile = null;
+
+        if (isset($result['documents'])) {
+            $zip = new ZipArchive();
+            $zipDir = storage_path('app/signed');
+            if (!is_dir($zipDir)) {
+                mkdir($zipDir, 0777, true);
+            }
+
+            $zipFile = $zipDir . '/bulk-signed-' . time() . '.zip';
+
+            if ($zip->open($zipFile, ZipArchive::CREATE) === true) {
+                foreach ($result['documents'] as $doc) {
+                    if (isset($doc['savedPath']) && file_exists($doc['savedPath'])) {
+                        $zip->addFile($doc['savedPath'], basename($doc['savedPath']));
+                    }
+                }
+                $zip->close();
+            }
         }
 
-        $accessToken = $tokens['access_token'];
-        $result = $this->service->bulkSignStatus($accessToken, $id);
-
-        return response()->json($result);
+        return redirect()->route('sign.ui')->with('download', basename($zipFile));
     }
 
     /** Embed Crypto QR */
-    public function embedQr()
+    public function embedQr(Request $request)
     {
-        $tokens = session('ugpass');
-        if (!$tokens) {
-            return redirect()->route('login');
-        }
+        $request->validate([
+            'document' => 'required|mimes:pdf|max:5120',
+        ]);
 
-        $accessToken = $tokens['access_token'];
+        $path = $request->file('document')->store('uploads', 'public');
+
+        $metaData = ["invoiceNo" => $request->invoiceNo ?? "12345", "date" => now()->toDateString()];
+        $secretData = ["secretCode" => $request->secretCode ?? "ABC123"];
+
         $result = $this->service->embedCryptoQR(
-            $accessToken,
-            storage_path('app/test.pdf'),
-            json_encode(["invoiceNo" => "12345", "date" => "2025-09-08"]),
-            json_encode(["secretCode" => "ABC123"])
+            storage_path("app/public/{$path}"),
+            $metaData,
+            $secretData
         );
 
-        return response()->json($result);
+        $downloadFile = isset($result['savedPath']) ? basename($result['savedPath']) : null;
+
+        return redirect()->route('sign.ui')->with('download', $downloadFile);
     }
 }

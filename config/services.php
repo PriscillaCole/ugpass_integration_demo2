@@ -38,13 +38,18 @@ return [
     'client_id' => env('UGPASS_CLIENT_ID'),
     'redirect_uri' => env('UGPASS_REDIRECT_URI'),
     'scope' => env('UGPASS_SCOPE', 'openid urn:idp:digitalid:profile'),
-    'authorization' => env('UGPASS_AUTHORIZATION'), // full /authorization URL
+    'authorization' => env('UGPASS_AUTHORIZATION'), 
     'authorization_base' => env('UGPASS_AUTHORIZATION_BASE', 'https://stgapi.ugpass.go.ug/idp'), // base issuer URL
     'jwks' => env('UGPASS_JWKS'),
     'token' => env('UGPASS_TOKEN'),
     'userinfo' => env('UGPASS_USERINFO'),
     'logout' => env('UGPASS_LOGOUT'),
     'private_key_path' => env('UGPASS_PRIVATE_KEY_PATH', storage_path('keys/ugpass_private.pem')),
+
+    'sign' => env('UGPASS_SIGN_URL'),
+    'bulk_sign' => env('UGPASS_BULK_SIGN_URL'),
+    'bulk_status' => env('UGPASS_BULK_STATUS_URL'),
+    'qr' => env('UGPASS_QR_URL'),
 ],
     
 
