@@ -28,64 +28,75 @@ class UgpassSigningService
     }
 
     /** Single Document Sign */
- private function saveSignedDocument(string $base64, string $originalName): string
-{
-    $dir = storage_path('app/signed');
-    if (!is_dir($dir)) {
-        mkdir($dir, 0777, true);
-    }
-
-    $filePath = $dir . '/' . pathinfo($originalName, PATHINFO_FILENAME) . '-signed.pdf';
-    file_put_contents($filePath, base64_decode($base64));
-
-    return $filePath;
-}
-
+/** Single Document Sign */
+/** Single Document Sign */
 public function signDocument(string $filePath, string $userEmail)
 {
     $url = config('services.ugpass.sign');
-    $clientId = config('services.ugpass.client_id');
 
-    // 1. Hash the PDF
-    $hash = base64_encode(hash('sha256', file_get_contents($filePath), true));
-
-    // 2. Create client assertion JWT
-    $clientAssertion = $this->buildClientAssertion($url);
-
-    // 3. Call UgPass signing API
-    $res = Http::post($url, [
-        'client_id' => $clientId,
-        'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-        'client_assertion' => $clientAssertion,
-        'hash' => $hash,
-        'hashAlgorithm' => 'SHA256',
-        'signingType' => 'PADES',
-        'documentName' => basename($filePath),
-        'userEmail' => $userEmail,
-    ]);
-
-    // 4. Debug raw response
-    if (!$res->ok()) {
-        dd("UgPass error", $res->status(), $res->body());
+    $tokens = session('ugpass');
+    if (!$tokens || !isset($tokens['access_token'])) {
+        return [
+            'success' => false,
+            'message' => 'No UgPass access token found. Please login again.'
+        ];
     }
+    $accessToken = $tokens['access_token'];
 
-    $json = $res->json();
+    $model = [
+        'documentType' => 'PADES',
+        'id' => $userEmail,
+        'placeHolderCoordinates' => null,
+        'esealPlaceHolderCoordinates' => null,
+    ];
 
-    // 5. Save signed PDF
-    if (isset($json['signedDocument'])) {
-        $dir = storage_path('app/signed');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+    try {
+       $response = Http::withHeaders([
+    'Authorization' => "Bearer {$accessToken}",       // UgPass token
+    'UgPassAuthorization' => "Bearer {$accessToken}", // duplicate for compatibility
+    'Accept' => 'application/json',
+        ])
+        ->attach('multipartFile', file_get_contents($filePath), basename($filePath))
+        ->asMultipart()
+        ->post($url, [
+            ['name' => 'model', 'contents' => json_encode($model)]
+        ]);
+
+
+        if (!$response->successful()) {
+            return [
+                'success' => false,
+                'message' => 'UgPass API returned an error.',
+                'status'  => $response->status(),
+                'body'    => $response->body(),
+            ];
         }
 
-        $filePathSigned = $dir . '/' . pathinfo($filePath, PATHINFO_FILENAME) . '-signed.pdf';
-        file_put_contents($filePathSigned, base64_decode($json['signedDocument']));
+        $json = $response->json();
 
-        $json['savedPath'] = $filePathSigned;
+        if (isset($json['result'])) {
+            $dir = storage_path('app/signed');
+            if (!is_dir($dir)) mkdir($dir, 0777, true);
+
+            $filePathSigned = $dir.'/'.pathinfo($filePath, PATHINFO_FILENAME).'-signed.pdf';
+            file_put_contents($filePathSigned, base64_decode($json['result']));
+            $json['savedPath'] = $filePathSigned;
+        }
+
+        return $json;
+
+    } catch (\Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'Request failed: '.$e->getMessage(),
+        ];
     }
-
-    return $json;
 }
+
+
+
+
+
 
 
 public function bulkSign(array $files, string $userEmail)

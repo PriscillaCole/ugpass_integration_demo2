@@ -60,7 +60,7 @@ class UgpassController extends Controller
         // Build client assertion JWT
         $clientAssertion = $this->svc->buildClientAssertion(
             $clientId,
-            config('services.ugpass.token') // UgPass token endpoint as aud
+            config('services.ugpass.token')
         );
 
         // Exchange code for tokens
@@ -89,20 +89,13 @@ class UgpassController extends Controller
 
         $idToken = $tokens['id_token'];
 
-        // Decode ID token to get user info
         $claims = $this->decodeIdToken($idToken);
 
-        // Save tokens + user claims in session
         session([
             'ugpass' => $tokens,
             'ugpass_user' => $claims,
         ]);
-
-        // return response()->json([
-        //     'tokens' => $tokens,
-        //     'user' => $claims,
-        // ]);
-        // Redirect to dashboard
+       
         return redirect()->route('dashboard');
     }
   
