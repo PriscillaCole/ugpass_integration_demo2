@@ -141,6 +141,18 @@ public function bulkSign(array $files, string $userEmail)
     return $json;
     }
 
+    // Save signed document to storage and return the path
+    private function saveSignedDocument(string $base64Content, string $originalFileName): string
+    {
+        $dir = storage_path('app/signed');
+        if (!is_dir($dir)) mkdir($dir, 0777, true);
+        $filePathSigned = $dir.'/'.pathinfo($originalFileName, PATHINFO_FILENAME).'-signed.pdf';
+        file_put_contents($filePathSigned, base64_decode($base64Content));
+        return $filePathSigned;
+    }
+    // Embed Crypto QR Code into document
+    
+
     public function embedCryptoQR(string $filePath, array $metaData, array $secretData)
     {
         $url = config('services.ugpass.qr');
