@@ -91,6 +91,8 @@ class UgpassController extends Controller
 
         $claims = $this->decodeIdToken($idToken);
 
+        // dd($claims, $tokens);
+
         session([
             'ugpass' => $tokens,
             'ugpass_user' => $claims,

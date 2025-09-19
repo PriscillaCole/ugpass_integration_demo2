@@ -1,0 +1,50 @@
+array:9 [▼ // app\Http\Controllers\UgpassController.php:94
+  "iss" => "https://stgapi.ugpass.go.ug/idp"
+  "sub" => "2cd3f184-c8e6-4233-811a-40bc4eddbbcb"
+  "aud" => "KWUXOdPtz54IMLQ4l720DUpySR9K4kyeNvYAW56NYAIgTUx3"
+  "exp" => 1758268899
+  "iat" => 1758268299
+  "nonce" => "3b0a1297e66b44dc"
+  "auth_time" => 1758268299
+  "at_hash" => "IMnbhnSKAe2n4Agn6L3VVw"
+  "daes_claims" => array:13 [▼
+    "suid" => "2cd3f184-c8e6-4233-811a-40bc4eddbbcb"
+    "birthdate" => "2/23/1997 12:00:00 AM"
+    "name" => "TREVOR MUKWAYA"
+    "phone" => "+256786075261"
+    "email" => "trevormukwaya93@gmail.com"
+    "gender" => "MALE"
+    "id_document_type" => "1"
+    "id_document_number" => "020291561"
+    "national_id_number" => "CM97030106K20K"
+    "loa" => "LOA3"
+    "country" => "UGA"
+    "login_type" => null
+    "login_profile" => array:6 [▼
+      0 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "8b3bdf99-d26c-403e-ba93-dfa7377d04cb"
+      ]
+      1 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "ba065e6f-67b7-4983-8079-d08708f54958"
+      ]
+      2 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "8dd5541a-b93e-4bb4-9dae-a890720307b8"
+      ]
+      3 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "7e4b1be4-ce99-4b48-83f2-731907312602"
+      ]
+      4 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "d8d8b5a0-b1f4-4823-8136-47ba1f31e928"
+      ]
+      5 => array:2 [▼
+        "Email" => "trevor.mukwaya@nita.go.ug"
+        "OrgnizationId" => "8f6b35d2-9c0a-4882-ab94-ca6794d33e63"
+      ]
+    ]
+  ]
+]
