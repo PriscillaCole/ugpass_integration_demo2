@@ -14,10 +14,8 @@ class UgpassSigningService
 public function signDocument(string $filePath, string $userEmail)
 {
     $url = config('services.ugpass.sign');
-
     $tokens = session('ugpass');
-    
-    
+
     if (!$tokens || !isset($tokens['access_token'])) {
         return [
             'success' => false,
@@ -36,25 +34,22 @@ public function signDocument(string $filePath, string $userEmail)
         ],
         'esealPlaceHolderCoordinates' => null,
     ];
-  
 
     try {
-       
         $response = Http::withHeaders([
                 'UgPassAuthorization' => "Bearer {$accessToken}",
                 'Accept' => 'application/json',
             ])
             ->asMultipart()
-            ->attach('multipartFile', file_get_contents($filePath), basename($filePath)) 
+            ->attach('multipartFile', file_get_contents($filePath), basename($filePath))
             ->attach('model', json_encode($model))
+            ->timeout(60) // give more time
             ->post($url);
-        dd($response->body(), $model);
 
         if (!$response->successful()) {
-            dd('not successful');
             Log::error('UgPass signing failed', [
-                'status'  => $response->status(),
-                'body'    => $response->body(),
+                'status' => $response->status(),
+                'body'   => $response->body(),
             ]);
 
             return [
@@ -66,13 +61,46 @@ public function signDocument(string $filePath, string $userEmail)
         }
 
         $json = $response->json();
-        if (isset($json['result'])) {
+        Log::info("UgPass API response", $json);
+
+        // Ensure success flag is true
+        if (!isset($json['success']) || !in_array($json['success'], [true, "true"], true)) {
+            return [
+                'success' => false,
+                'message' => 'UgPass API did not return success.',
+                'body'    => $json,
+            ];
+        }
+
+        // Ensure result exists
+        if (isset($json['result']) && !empty($json['result'])) {
             $dir = storage_path('app/signed');
             if (!is_dir($dir)) mkdir($dir, 0777, true);
 
-            $filePathSigned = $dir.'/'.pathinfo($filePath, PATHINFO_FILENAME).'-signed.pdf';
-            file_put_contents($filePathSigned, base64_decode($json['result']));
-            $json['savedPath'] = $filePathSigned;
+            $filePathSigned = $dir . '/' . pathinfo($filePath, PATHINFO_FILENAME) . '-signed.pdf';
+
+            // Decode safely
+            $content = base64_decode($json['result'], true);
+            if ($content === false) {
+                Log::error("Base64 decoding failed", [
+                    'result_sample' => substr($json['result'], 0, 50)
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Base64 decoding failed.',
+                ];
+            }
+
+            file_put_contents($filePathSigned, $content);
+
+            if (file_exists($filePathSigned)) {
+                Log::info("Signed file saved successfully", ['path' => $filePathSigned]);
+                $json['savedPath'] = $filePathSigned;
+            } else {
+                Log::error("Failed to save signed file", ['path' => $filePathSigned]);
+                $json['savedPath'] = null;
+            }
         }
 
         return $json;
@@ -86,7 +114,7 @@ public function signDocument(string $filePath, string $userEmail)
 
         return [
             'success' => false,
-            'message' => 'Request failed: '.$e->getMessage(),
+            'message' => 'Request failed: ' . $e->getMessage(),
         ];
     }
 }
