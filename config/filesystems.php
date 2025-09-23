@@ -77,4 +77,25 @@ return [
         public_path('storage') => storage_path('app/public'),
     ],
 
+    'sftp-ugpass' => [
+    'driver' => 'sftp',
+    'host' => env('UGPASS_SFTP_HOST'),
+    'username' => env('UGPASS_SFTP_USER'),
+    'password' => env('UGPASS_SFTP_PASS'),
+    'root' => 'C:/UgPass/input_docs',
+    'port' => 22,
+    'timeout' => 30,
+],
+
+'sftp-ugpass-signed' => [
+    'driver' => 'sftp',
+    'host' => env('UGPASS_SFTP_HOST'),
+    'username' => env('UGPASS_SFTP_USER'),
+    'password' => env('UGPASS_SFTP_PASS'),
+    'root' => 'C:/UgPass/signed_docs',
+    'port' => 22,
+    'timeout' => 30,
+],
+
+
 ];
