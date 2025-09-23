@@ -47,7 +47,7 @@ Route::get('/signed/{file}', function ($file) {
 
 
 Route::post('/sign-single', [UgpassSigningController::class, 'signSingle'])->name('sign.single');
-Route::post('/sign-bulk', [UgpassSigningController::class, 'bulkSign'])->name('sign.bulk');
+Route::post('/sign-bulk', [UgpassSigningController::class, 'signBulk'])->name('sign.bulk');
 Route::post('/sign-qr', [UgpassSigningController::class, 'embedQr'])->name('sign.qr');
 require __DIR__.'/auth.php';
 
