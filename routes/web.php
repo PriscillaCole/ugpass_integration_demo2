@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UgpassController;
 use App\Http\Controllers\UgpassSigningController;
 use App\Http\Controllers\UgpassBulkSigningController;
+use App\Http\Controllers\UgPassCryptoQrController;
 
 
 Route::get('/', function () {
@@ -50,9 +51,7 @@ Route::get('/signed/{file}', function ($file) {
 Route::post('/sign-single', [UgpassSigningController::class, 'signSingle'])->name('sign.single');
 Route::post('/sign-bulk', [UgpassBulkSigningController::class, 'bulkSignRequest'])->name('sign.bulk');
 Route::post('/sign-qr', [UgpassSigningController::class, 'embedQr'])->name('sign.qr');
-// routes/web.php or routes/api.php
-Route::post('/ugpass/qr/embed', [\App\Http\Controllers\UgPassCryptoQrController::class, 'embedBulk'])
-    ->name('ugpass.qr.embed');
+Route::post('/pdf/embed-qr', [UgPassCryptoQrController::class, 'embed'])->name('pdf.embedQr');
 
 require __DIR__.'/auth.php';
 

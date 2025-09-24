@@ -48,21 +48,15 @@
 
             {{-- QR Embed --}}
             <div class="tab-pane fade" id="qr">
-                <form method="POST" action="{{ route('sign.qr') }}" enctype="multipart/form-data">
+                 <form action="{{ route('pdf.embedQr') }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    <div class="mb-3">
-                        <label class="form-label">Upload PDF</label>
-                        <input type="file" name="document" class="form-control" required>
+
+                    <div class="form-group">
+                        <label for="file">Select PDF File</label>
+                        <input type="file" name="file" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Invoice No</label>
-                        <input type="text" name="invoiceNo" class="form-control" value="INV-001">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Secret Code</label>
-                        <input type="text" name="secretCode" class="form-control" value="SECRET123">
-                    </div>
-                    <button class="btn btn-warning">Embed QR</button>
+
+                    <button type="submit" class="btn btn-primary">Generate QR Embedded PDF</button>
                 </form>
             </div>
         </div>

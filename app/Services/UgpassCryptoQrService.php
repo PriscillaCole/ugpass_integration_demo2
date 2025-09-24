@@ -8,50 +8,54 @@ use Illuminate\Support\Facades\Log;
 
 class UgPassCryptoQrService
 {
-    public function embedQr(string $pdfPath, array $coords, array $qrData): array
+    public function embedQr(string $filePath): array
     {
-        $url = config('services.ugpass.embed_qr'); // {Signing Base URL}/Agent/api/digital/signature/post/embed/qr
+        $url = config('services.ugpass.qr');
         $tokens = session('ugpass');
 
         if (!$tokens || empty($tokens['access_token'])) {
             return ['success' => false, 'message' => 'No UgPass access token found. Please login again.'];
         }
+        dd($tokens, $url);
 
-        // Spec: multipart with parts "file" and "model"
-        // model.qrPlaceHolderCoordinates: pageNumber, signatureXaxis, signatureYaxis, imageWidth, imageHeight
-        // model.qrData: publicData, privateData, optional photo (base64, <= ~100KB)
         $model = [
             'qrPlaceHolderCoordinates' => [
-                'pageNumber'     => $coords['pageNumber'] ?? 1,
-                'signatureXaxis' => $coords['x'] ?? 300,
-                'signatureYaxis' => $coords['y'] ?? 400,
-                'imageWidth'     => $coords['width'] ?? 120,   // pixels or units per Agent docs
-                'imageHeight'    => $coords['height'] ?? 120,
+                    'pageNumber'   => 1,
+                    'signatureXaxis' => 200,
+                    'signatureYaxis' => 300,
+                    'imageWidth'    => 100,
+                    'imageHeight'   => 100,
             ],
-            'qrData' => [
-                'publicData'  => $qrData['publicData'] ?? '{}',
-                'privateData' => $qrData['privateData'] ?? '{}',
-                // Optional base64 JPEG portrait if face auth is used:
-                // 'photo' => $qrData['photo'] ?? null,
+            'qrData' =>[
+                'publicData'  => json_encode(['docId' => '12345']),
+                'privateData' => json_encode(['secret' => 'xyz']),
+                'photo'       => null
             ],
-        ];
+            ];
 
-        $resp = Http::withHeaders([
-                'UgPassAuthorization' => 'Bearer '.$tokens['access_token'],
-                'Accept' => 'application/json',
-            ])
-            ->asMultipart()
-            ->attach('file', fopen($pdfPath, 'r'), basename($pdfPath))
-            ->attach('model', json_encode($model))
-            ->post($url);
+       $resp = Http::withHeaders([
+        'Accept' => 'application/json',
+        'UgPassAuthorization' => 'Bearer '.$tokens['access_token'],
+    ])
+    ->asMultipart()
+    ->attach('file', file_get_contents($filePath), basename($filePath))
+    ->attach('model', json_encode($model), 'model.json')
+    ->post($url);
+
+
+dd([
+    'status' => $resp->status(),
+    'headers' => $resp->headers(),
+    'body' => $resp->body(),
+]);
 
         if (!$resp->successful()) {
             Log::error('UgPass CryptoQR embed failed', ['status' => $resp->status(), 'body' => $resp->body()]);
             return ['success' => false, 'status' => $resp->status(), 'body' => $resp->body()];
         }
 
-        // Response: base64-encoded PDF with embedded QR in result
         $json = $resp->json();
+        
         return ['success' => true, 'data' => $json];
     }
 }
