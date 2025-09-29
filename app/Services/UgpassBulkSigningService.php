@@ -29,6 +29,7 @@ class UgpassBulkSigningService
      */
     public function bulkSign(array $localFiles, string $userEmail): array
     {
+      
         $tokens = session('ugpass');
         if (!$tokens || !isset($tokens['access_token'])) {
             return ['success' => false, 'message' => 'No UgPass access token. Please login again.'];
@@ -54,25 +55,31 @@ class UgpassBulkSigningService
         }
 
         // 2. Trigger bulk signing
-        $payload = [
-            "sourcePath" => "C:/UgPass/input_docs",        // Must match UgPass config
-            "destinationPath" => "C:/UgPass/signed_docs",  // Must match UgPass config
-            "id" => $userEmail,
-            "correlationId" => (string) Str::uuid(),
-            "placeHolderCoordinates" => [
-                "pageNumber" => 1,
-                "signatureXaxis" => 300.00,
-                "signatureYaxis" => 400.00,
-            ],
-            "esealPlaceHolderCoordinates" => null,
-        ];
+        $model = [
+        "sourcePath" => "C:/UgPass/input_docs",
+        "destinationPath" => "C:/UgPass/signed_docs",
+        "id" => $userEmail,
+        "correlationId" => (string) Str::uuid(),
+        "placeHolderCoordinates" => [
+            "pageNumber" => 1,
+            "signatureXaxis" => 300.00,
+            "signatureYaxis" => 400.00,
+        ],
+        "esealPlaceHolderCoordinates" => null,
+    ];
 
-        Log::info("Bulk signing request payload", $payload);
+    $response = Http::withHeaders([
+        'UgPassAuthorization' => "Bearer {$tokens['access_token']}",
+        'Accept' => 'application/json',
+    ])->asMultipart()->post($this->bulkSignUrl, [
+        [
+            'name' => 'model',
+            'contents' => json_encode($model),
+        ]
+    ]);
 
-        $response = Http::withHeaders([
-            'UgPassAuthorization' => "Bearer {$tokens['access_token']}",
-            'Accept' => 'application/json',
-        ])->post($this->bulkSignUrl, $payload);
+    dd($response->body());
+
 
         if (!$response->successful()) {
             Log::error("UgPass bulk signing failed", [

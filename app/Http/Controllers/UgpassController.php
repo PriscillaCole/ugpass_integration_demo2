@@ -79,7 +79,6 @@ class UgpassController extends Controller
 
         $tokens = $tokenRes->json();
 
-
         if (!isset($tokens['id_token'])) {
         return response()->json([
             'error' => 'UgPass did not return an id_token',

@@ -35,6 +35,8 @@ class UgpassSigningService
             'esealPlaceHolderCoordinates' => null,
         ];
 
+      
+
         try {
             $response = Http::withHeaders([
                     'UgPassAuthorization' => "Bearer {$accessToken}",
@@ -43,8 +45,9 @@ class UgpassSigningService
                 ->asMultipart()
                 ->attach('multipartFile', file_get_contents($filePath), basename($filePath))
                 ->attach('model', json_encode($model))
-                ->timeout(60) // give more time
+                ->timeout(60) 
                 ->post($url);
+
 
             if (!$response->successful()) {
                 Log::error('UgPass signing failed', [

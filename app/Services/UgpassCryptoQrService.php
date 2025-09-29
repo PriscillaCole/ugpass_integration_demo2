@@ -16,7 +16,7 @@ class UgPassCryptoQrService
         if (!$tokens || empty($tokens['access_token'])) {
             return ['success' => false, 'message' => 'No UgPass access token found. Please login again.'];
         }
-        dd($tokens, $url);
+      
 
         $model = [
             'qrPlaceHolderCoordinates' => [
@@ -32,6 +32,8 @@ class UgPassCryptoQrService
                 'photo'       => null
             ],
             ];
+
+            dd($model);
 
        $resp = Http::withHeaders([
         'Accept' => 'application/json',
