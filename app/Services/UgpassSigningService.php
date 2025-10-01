@@ -11,7 +11,7 @@ class UgpassSigningService
 {
  
    // Single Document Sign
-    public function signDocument(string $filePath, string $userEmail)
+    public function signDocument(string $filePath, string $userEmail, array $signatureData = [])
     {
         $url = config('services.ugpass.sign');
         $tokens = session('ugpass');
@@ -28,9 +28,9 @@ class UgpassSigningService
             'documentType' => 'PADES',
             'id' => $userEmail,
             'placeHolderCoordinates' => [
-                'pageNumber' => 1,
-                'signatureXaxis' => 300.00,
-                'signatureYaxis' => 400.00
+                'pageNumber' => $signatureData['pageNumber'] ?? 1,
+                'signatureXaxis' => $signatureData['signatureXaxis'] ?? 300,
+                'signatureYaxis' => $signatureData['signatureYaxis'] ?? 400,
             ],
             'esealPlaceHolderCoordinates' => null,
         ];

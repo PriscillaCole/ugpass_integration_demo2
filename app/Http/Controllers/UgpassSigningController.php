@@ -23,7 +23,14 @@ class UgpassSigningController extends Controller
 
             $result = $this->service->signDocument(
                 storage_path("app/public/{$path}"),
-                session('ugpass_user')['daes_claims']['email'] ?? 'unknown@example.com', true
+                session('ugpass_user')['daes_claims']['email'] ?? 'unknown@example.com', 
+                [
+                    'pageNumber' => $request->input('pageNumber'),
+                    'signatureXaxis' => $request->input('signatureXaxis'),
+                    'signatureYaxis' => $request->input('signatureYaxis'),
+                    // 'imageWidth' => $request->input('signatureWidth'),
+                    // 'imageHeight' => $request->input('signatureHeight'),
+                ]
             );
 
             $downloadFile = isset($result['savedPath']) ? basename($result['savedPath']) : null;
